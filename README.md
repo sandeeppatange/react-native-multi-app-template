@@ -192,3 +192,79 @@ For a visual guide on creating your first Expo app, you might find the following
 For a visual guide on navigating between screens in React Native, you might find the following video helpful:
 
 [React Native Tutorial - 74 - Navigation between Screens](https://www.youtube.com/watch?v=CZcyZ1uF4g8)
+
+## First Time Commit and Push to Remote Repository
+
+Follow the steps below to commit your files and push them to a remote repository for the first time.
+
+### 1. Initialize a New Git Repository
+
+Navigate to your project directory (replace with your actual path):
+
+```bash
+cd path/to/your/project
+```
+
+Then, initialize a Git repository:
+
+```bash
+git init
+```
+
+### 2. Add Files to Git
+
+To start tracking the files in your project, add them to the staging area. You can add all files at once:
+
+```bash
+git add .
+```
+
+Alternatively, you can specify individual files:
+
+```bash
+git add filename
+```
+
+### 3. Commit Your Changes
+
+After adding the files, commit them with a message. This will mark the first commit of your project:
+
+```bash
+git commit -m "Initial commit"
+```
+
+### 4. Link the Local Repository to the Remote Repository
+
+If you haven't created a remote repository yet, go to GitHub/GitLab or another platform and create one. Then, link the local repository to the remote repository:
+
+```bash
+git remote add origin https://github.com/username/repository.git
+```
+
+Replace `https://github.com/username/repository.git` with your actual remote repository URL.
+
+### 5. Push Your Changes to the Remote Repository
+
+Push your changes to the `main` branch on the remote repository:
+
+```bash
+git push -u origin main
+```
+
+If your default branch is `master`, use that instead:
+
+```bash
+git push -u origin master
+```
+
+### 6. Authenticate
+
+If prompted, enter your GitHub username and password (or a personal access token for GitHub). This is required for authentication to push changes to the remote repository.
+
+---
+
+Once you've completed these steps, your project will be committed locally and pushed to the remote repository for the first time! 🎉
+
+```
+
+```

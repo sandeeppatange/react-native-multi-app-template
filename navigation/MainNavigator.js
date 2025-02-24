@@ -1,7 +1,11 @@
 // navigation/MainNavigator.js
 import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
+import Icon from "react-native-vector-icons/FontAwesome";
+import { LinearGradient } from "expo-linear-gradient";
+
 import HomeScreen from "../screens/HomeScreen";
 import AppAScreen from "../screens/AppAScreen";
 import AppBScreen from "../screens/AppBScreen";
@@ -9,23 +13,70 @@ import AppCScreen from "../screens/AppCScreen";
 
 const Stack = createStackNavigator();
 
-/*
-    The MainNavigator component contains a Stack.Navigator component.
-    Inside the Stack.Navigator component, we have added four Stack.Screen components.
-    The Stack.Screen components are used to define the screens of the app.
-    The name prop is used to define the name of the screen and the component prop is used to define the component that will be rendered when the screen is navigated to.
-    We have also set the initialRouteName prop of the Stack.Navigator component to Home so that the HomeScreen component is rendered when the app is first opened.
-*/
+const GradientWrapper = ({ children }) => (
+  <LinearGradient
+    colors={["white", "#ddb52f", "#007BFF"]}
+    style={styles.gradientContainer}
+  >
+    {children}
+  </LinearGradient>
+);
 
 const MainNavigator = () => (
   <NavigationContainer>
-    <Stack.Navigator initialRouteName="Home">
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="GovtBusSearch" component={AppAScreen} />
-      <Stack.Screen name="AppB" component={AppBScreen} />
-      <Stack.Screen name="AppC" component={AppCScreen} />
+    <Stack.Navigator
+      initialRouteName="Home"
+      screenOptions={({ navigation, route }) => ({
+        headerStyle: { backgroundColor: "#007BFF" },
+        headerTintColor: "#fff",
+        headerTitleStyle: { fontWeight: "bold" },
+        headerRight: () =>
+          route.name !== "Home" ? (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Home")}
+              style={{ marginRight: 25 }}
+            >
+              <Icon name="home" size={30} color="#ddd" />
+            </TouchableOpacity>
+          ) : null,
+      })}
+    >
+      <Stack.Screen name="Home">
+        {(props) => (
+          <GradientWrapper>
+            <HomeScreen {...props} />
+          </GradientWrapper>
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="BusSearch">
+        {(props) => (
+          <GradientWrapper>
+            <AppAScreen {...props} />
+          </GradientWrapper>
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="AppB">
+        {(props) => (
+          <GradientWrapper>
+            <AppBScreen {...props} />
+          </GradientWrapper>
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="AppC">
+        {(props) => (
+          <GradientWrapper>
+            <AppCScreen {...props} />
+          </GradientWrapper>
+        )}
+      </Stack.Screen>
     </Stack.Navigator>
   </NavigationContainer>
 );
 
 export default MainNavigator;
+
+const styles = StyleSheet.create({
+  gradientContainer: {
+    flex: 1,
+  },
+});

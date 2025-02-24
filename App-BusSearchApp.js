@@ -1,4 +1,3 @@
-// screens/AppAScreen.js
 import React, { useState } from "react";
 import {
   View,
@@ -8,6 +7,9 @@ import {
   StyleSheet,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import { useNavigation } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { NavigationContainer } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/FontAwesome";
 
 // Sample Data (Simulating Database)
@@ -62,7 +64,22 @@ const schedules = [
   },
 ];
 
-const AppAScreen = () => {
+const HomeScreen = () => {
+  const navigation = useNavigation();
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Search")}
+        style={styles.busButton}
+      >
+        <Icon name="bus" size={100} color="white" />
+        <Text style={styles.buttonText}>Search Bus</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const SearchScreen = () => {
   const [source, setSource] = useState(locations[0].id);
   const [destination, setDestination] = useState(locations[1].id);
   const [filteredSchedules, setFilteredSchedules] = useState([]);
@@ -74,8 +91,6 @@ const AppAScreen = () => {
       return route.sourceId === source && route.destinationId === destination;
     });
     setFilteredSchedules(results);
-    setFilteredSchedules(results);
-    setExpandedRow(null);
   };
 
   const toggleExpand = (id) => {
@@ -111,19 +126,17 @@ const AppAScreen = () => {
       </TouchableOpacity>
 
       <View style={styles.tableContainer}>
-        {filteredSchedules && filteredSchedules.length === 0 && (
+        {filteredSchedules.length === 0 && (
           <Text style={styles.label}>No buses found</Text>
         )}
         {filteredSchedules.length > 0 && (
           <View style={styles.tableHeader}>
-            <View style={{ width: "60%", flexDirection: "row" }}>
-              {/*<Text style={styles.tableHeaderText}>Bus</Text> */}
-              <Text style={styles.tableHeaderText}>Source</Text>
-              <Text style={styles.tableHeaderText}>Destination</Text>
-            </View>
+            {/*<Text style={styles.tableHeaderText}>Bus</Text> */}
+            <Text style={styles.tableHeaderText}>Source</Text>
+            <Text style={styles.tableHeaderText}>Destination</Text>
             <Text style={styles.tableHeaderText}>Time</Text>
             <Text style={styles.tableHeaderText}>Days</Text>
-            {/*<Text></Text>*/}
+            <Text style={styles.tableHeaderText}></Text>
           </View>
         )}
 
@@ -141,22 +154,20 @@ const AppAScreen = () => {
                   onPress={() => toggleExpand(item.id)}
                   style={styles.tableRow}
                 >
-                  <View style={{ width: "60%", flexDirection: "row" }}>
-                    {/*<Text style={styles.tableRowText}>{item.busNumber}</Text> */}
-                    <Text style={styles.tableRowText}>
-                      {locations.find((loc) => loc.id === route.sourceId).name}
-                    </Text>
-                    <Text style={styles.tableRowText}>
-                      {
-                        locations.find((loc) => loc.id === route.destinationId)
-                          .name
-                      }
-                    </Text>
-                  </View>
+                  {/*<Text style={styles.tableRowText}>{item.busNumber}</Text> */}
+                  <Text style={styles.tableRowText}>
+                    {locations.find((loc) => loc.id === route.sourceId).name}
+                  </Text>
+                  <Text style={styles.tableRowText}>
+                    {
+                      locations.find((loc) => loc.id === route.destinationId)
+                        .name
+                    }
+                  </Text>
                   <Text style={styles.tableRowText}>
                     {item.departureTime} - {item.arrivalTime}
                   </Text>
-                  <Text>{item.weekDays}</Text>
+                  <Text style={styles.tableRowText}>{item.weekDays}</Text>
                   <Icon
                     name={
                       expandedRow === item.id ? "chevron-up" : "chevron-down"
@@ -186,15 +197,40 @@ const AppAScreen = () => {
     </View>
   );
 };
-export default AppAScreen;
+
+const Stack = createStackNavigator();
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: "#1E88E5" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold" },
+        }}
+      >
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Search" component={SearchScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 12 },
+  container: { flex: 1, padding: 20, backgroundColor: "#f4f4f4" },
+  busButton: {
+    backgroundColor: "#1E88E5",
+    padding: 20,
+    borderRadius: 20,
+    alignItems: "center",
+    margin: 80,
+  },
   buttonText: {
     fontWeight: "bold",
     fontSize: 18,
     color: "white",
-    marginVertical: 5,
+    marginTop: 10,
   },
   searchButton: {
     backgroundColor: "#007AFF",
@@ -208,29 +244,29 @@ const styles = StyleSheet.create({
     marginTop: 20,
     backgroundColor: "white",
     borderRadius: 5,
-    padding: 5,
+    padding: 10,
   },
   tableHeader: {
     flexDirection: "row",
     backgroundColor: "#007AFF",
     padding: 10,
   },
-  tableHeaderText: {
-    flex: 1,
-    color: "white",
-    fontWeight: "bold",
-    padding: 1,
-  },
+  tableHeaderText: { flex: 1, color: "white", fontWeight: "bold" },
   tableRow: {
     flexDirection: "row",
-    padding: 5,
+    padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
   },
   tableRowText: { flex: 1 },
   routeStopsContainer: { padding: 10, backgroundColor: "#e0e0e0" },
   routeStopText: { fontSize: 14, marginVertical: 2 },
-  expandIcon: { marginLeft: 1 },
+  expandIcon: { marginLeft: 5 },
+  busIcon: {
+    backgroundColor: "#E3F2FD",
+    padding: 15,
+    borderRadius: 50,
+  },
   label: {
     fontSize: 18,
     fontWeight: "bold",
