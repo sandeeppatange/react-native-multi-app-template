@@ -7,7 +7,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { LinearGradient } from "expo-linear-gradient";
 
 import HomeScreen from "../screens/HomeScreen";
-import AppAScreen from "../screens/AppAScreen";
+import BusSearchScreen from "../screens/BusSearchScreen";
 import AppBScreen from "../screens/AppBScreen";
 import AppCScreen from "../screens/AppCScreen";
 
@@ -51,7 +51,7 @@ const MainNavigator = () => (
       <Stack.Screen name="BusSearch">
         {(props) => (
           <GradientWrapper>
-            <AppAScreen {...props} />
+            <BusSearchScreen {...props} />
           </GradientWrapper>
         )}
       </Stack.Screen>

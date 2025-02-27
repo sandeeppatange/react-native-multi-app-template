@@ -1,4 +1,3 @@
-// screens/AppAScreen.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -15,21 +14,14 @@ import Icon from "react-native-vector-icons/FontAwesome";
 // API Base URL
 const BASE_URL = "http://192.168.31.136:8080";
 
-const routeStops = [
-  { routeId: 1, stopId: 3, stopSequence: 1, stopTime: "08:15" },
-  { routeId: 1, stopId: 7, stopSequence: 2, stopTime: "08:30" },
-  { routeId: 2, stopId: 5, stopSequence: 1, stopTime: "09:00" },
-  { routeId: 2, stopId: 4, stopSequence: 2, stopTime: "09:30" },
-  { routeId: 3, stopId: 2, stopSequence: 1, stopTime: "10:15" },
-];
-
-const AppAScreen = () => {
+const BusSearchScreen = () => {
   const [locations, setLocations] = useState([]);
   const [source, setSource] = useState(null);
   const [destination, setDestination] = useState(null);
   const [filteredSchedules, setFilteredSchedules] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [routeStops, setRouteStops] = useState({}); // Store fetched stops for each route
 
   useEffect(() => {
     fetchRoutes();
@@ -85,8 +77,27 @@ const AppAScreen = () => {
     setLoading(false);
   };
 
-  const toggleExpand = (id) => {
-    setExpandedRow(expandedRow === id ? null : id);
+  // Fetch route stops for a given route
+  const fetchRouteStops = async (routeId) => {
+    try {
+      const response = await fetch(`${BASE_URL}/route-stops/${routeId}`);
+      const data = await response.json();
+      setRouteStops((prevStops) => ({ ...prevStops, [routeId]: data }));
+    } catch (error) {
+      console.error("Error fetching route stops:", error);
+      Alert.alert("Error", "Failed to load route stops.");
+    }
+  };
+
+  const toggleExpand = (routeId) => {
+    if (expandedRow === routeId) {
+      setExpandedRow(null);
+    } else {
+      setExpandedRow(routeId);
+      if (!routeStops[routeId]) {
+        fetchRouteStops(routeId); // Fetch stops only if not already loaded
+      }
+    }
   };
 
   return (
@@ -125,19 +136,18 @@ const AppAScreen = () => {
         />
       ) : (
         <View style={styles.tableContainer}>
-          {filteredSchedules && filteredSchedules.length === 0 && (
+          {filteredSchedules.length === 0 && (
             <Text style={styles.label}>No buses found</Text>
           )}
+
           {filteredSchedules.length > 0 && (
             <View style={styles.tableHeader}>
               <View style={{ width: "60%", flexDirection: "row" }}>
-                {/*<Text style={styles.tableHeaderText}>Bus</Text> */}
                 <Text style={styles.tableHeaderText}>Source</Text>
                 <Text style={styles.tableHeaderText}>Destination</Text>
               </View>
               <Text style={styles.tableHeaderText}>Time</Text>
               <Text style={styles.tableHeaderText}>Days</Text>
-              {/*<Text></Text>*/}
             </View>
           )}
 
@@ -145,17 +155,14 @@ const AppAScreen = () => {
             data={filteredSchedules}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => {
-              const stops = routeStops.filter(
-                (stop) => stop.routeId === item.routeId
-              );
+              const stops = routeStops[item.route.id] || [];
               return (
                 <View>
                   <TouchableOpacity
-                    onPress={() => toggleExpand(item.id)}
+                    onPress={() => toggleExpand(item.route.id)}
                     style={styles.tableRow}
                   >
                     <View style={{ width: "60%", flexDirection: "row" }}>
-                      {/*<Text style={styles.tableRowText}>{item.busNumber}</Text> */}
                       <Text style={styles.tableRowText}>
                         {item.route.source.name}
                       </Text>
@@ -169,7 +176,9 @@ const AppAScreen = () => {
                     <Text>{item.weekDays}</Text>
                     <Icon
                       name={
-                        expandedRow === item.id ? "chevron-up" : "chevron-down"
+                        expandedRow === item.route.id
+                          ? "chevron-up"
+                          : "chevron-down"
                       }
                       size={16}
                       color="black"
@@ -177,13 +186,12 @@ const AppAScreen = () => {
                     />
                   </TouchableOpacity>
 
-                  {expandedRow === item.id && (
+                  {expandedRow === item.route.id && (
                     <View style={styles.routeStopsContainer}>
                       <Text style={styles.stopsHeader}>Via:</Text>
                       {stops.map((stop) => (
-                        <Text key={stop.stopId} style={styles.routeStopText}>
-                          {locations.find((loc) => loc.id === stop.stopId).name}{" "}
-                          - {stop.stopTime}
+                        <Text key={stop.id} style={styles.routeStopText}>
+                          {stop.stop.name} - {stop.stopTime}
                         </Text>
                       ))}
                     </View>
@@ -198,7 +206,7 @@ const AppAScreen = () => {
   );
 };
 
-export default AppAScreen;
+export default BusSearchScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12 },
@@ -227,12 +235,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
     padding: 10,
   },
-  tableHeaderText: {
-    flex: 1,
-    color: "white",
-    fontWeight: "bold",
-    padding: 1,
-  },
+  tableHeaderText: { flex: 1, color: "white", fontWeight: "bold", padding: 1 },
   tableRow: {
     flexDirection: "row",
     padding: 5,
@@ -249,8 +252,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 5,
   },
-  stopsHeader: {
-    fontStyle: "italic",
-    fontWeight: "bold",
-  },
+  stopsHeader: { fontStyle: "italic", fontWeight: "bold" },
 });
