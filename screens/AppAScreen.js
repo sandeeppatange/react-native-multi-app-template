@@ -1,31 +1,19 @@
 // screens/AppAScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   FlatList,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Icon from "react-native-vector-icons/FontAwesome";
 
-// Sample Data (Simulating Database)
-const locations = [
-  { id: 1, name: "Basavakalyan" },
-  { id: 2, name: "Gulbarga" },
-  { id: 3, name: "Mudbi" },
-  { id: 4, name: "Humnabad" },
-  { id: 5, name: "Rajeshwar" },
-  { id: 6, name: "Tadola" },
-  { id: 7, name: "Kamlapur" },
-];
-
-const routes = [
-  { id: 1, sourceId: 1, destinationId: 2 },
-  { id: 2, sourceId: 1, destinationId: 2 },
-  { id: 3, sourceId: 4, destinationId: 5 },
-];
+// API Base URL
+const BASE_URL = "http://192.168.31.136:8080";
 
 const routeStops = [
   { routeId: 1, stopId: 3, stopSequence: 1, stopTime: "08:15" },
@@ -35,47 +23,66 @@ const routeStops = [
   { routeId: 3, stopId: 2, stopSequence: 1, stopTime: "10:15" },
 ];
 
-const schedules = [
-  {
-    id: 1,
-    busNumber: "105A",
-    routeId: 1,
-    departureTime: "08:00",
-    arrivalTime: "08:45",
-    weekDays: "Mon-Fri",
-  },
-  {
-    id: 2,
-    busNumber: "220B",
-    routeId: 2,
-    departureTime: "09:00",
-    arrivalTime: "09:45",
-    weekDays: "Mon-Fri",
-  },
-  {
-    id: 3,
-    busNumber: "330C",
-    routeId: 3,
-    departureTime: "10:00",
-    arrivalTime: "10:45",
-    weekDays: "Sat-Sun",
-  },
-];
-
 const AppAScreen = () => {
-  const [source, setSource] = useState(locations[0].id);
-  const [destination, setDestination] = useState(locations[1].id);
+  const [locations, setLocations] = useState([]);
+  const [source, setSource] = useState(null);
+  const [destination, setDestination] = useState(null);
   const [filteredSchedules, setFilteredSchedules] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const searchBus = () => {
-    const results = schedules.filter((schedule) => {
-      const route = routes.find((r) => r.id === schedule.routeId);
-      return route.sourceId === source && route.destinationId === destination;
+  useEffect(() => {
+    fetchRoutes();
+  }, []);
+
+  // Fetch locations from the API
+  const fetchRoutes = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/routes`);
+      const data = await response.json();
+
+      if (data.length > 0) {
+        const uniqueLocations = extractUniqueLocations(data);
+        setLocations(uniqueLocations);
+        setSource(uniqueLocations[0].id);
+        setDestination(uniqueLocations[1]?.id || uniqueLocations[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      Alert.alert("Error", "Failed to load locations.");
+    }
+  };
+
+  // Extract unique locations from routes
+  const extractUniqueLocations = (routes) => {
+    const locationsMap = new Map();
+    routes.forEach((route) => {
+      locationsMap.set(route.source.id, route.source);
+      locationsMap.set(route.destination.id, route.destination);
     });
-    setFilteredSchedules(results);
-    setFilteredSchedules(results);
-    setExpandedRow(null);
+    return Array.from(locationsMap.values());
+  };
+
+  // Search buses based on source and destination
+  const searchBus = async () => {
+    if (!source || !destination) {
+      Alert.alert("Error", "Please select a valid source and destination.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${BASE_URL}/schedules/search?sourceId=${source}&destinationId=${destination}`
+      );
+      const data = await response.json();
+      setFilteredSchedules(data);
+      setExpandedRow(null);
+    } catch (error) {
+      console.error("Error searching buses:", error);
+      Alert.alert("Error", "Failed to fetch bus schedules.");
+    }
+    setLoading(false);
   };
 
   const toggleExpand = (id) => {
@@ -110,82 +117,87 @@ const AppAScreen = () => {
         <Text style={styles.buttonText}>Search</Text>
       </TouchableOpacity>
 
-      <View style={styles.tableContainer}>
-        {filteredSchedules && filteredSchedules.length === 0 && (
-          <Text style={styles.label}>No buses found</Text>
-        )}
-        {filteredSchedules.length > 0 && (
-          <View style={styles.tableHeader}>
-            <View style={{ width: "60%", flexDirection: "row" }}>
-              {/*<Text style={styles.tableHeaderText}>Bus</Text> */}
-              <Text style={styles.tableHeaderText}>Source</Text>
-              <Text style={styles.tableHeaderText}>Destination</Text>
-            </View>
-            <Text style={styles.tableHeaderText}>Time</Text>
-            <Text style={styles.tableHeaderText}>Days</Text>
-            {/*<Text></Text>*/}
-          </View>
-        )}
-
-        <FlatList
-          data={filteredSchedules}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => {
-            const route = routes.find((r) => r.id === item.routeId);
-            const stops = routeStops.filter(
-              (stop) => stop.routeId === item.routeId
-            );
-            return (
-              <View>
-                <TouchableOpacity
-                  onPress={() => toggleExpand(item.id)}
-                  style={styles.tableRow}
-                >
-                  <View style={{ width: "60%", flexDirection: "row" }}>
-                    {/*<Text style={styles.tableRowText}>{item.busNumber}</Text> */}
-                    <Text style={styles.tableRowText}>
-                      {locations.find((loc) => loc.id === route.sourceId).name}
-                    </Text>
-                    <Text style={styles.tableRowText}>
-                      {
-                        locations.find((loc) => loc.id === route.destinationId)
-                          .name
-                      }
-                    </Text>
-                  </View>
-                  <Text style={styles.tableRowText}>
-                    {item.departureTime} - {item.arrivalTime}
-                  </Text>
-                  <Text>{item.weekDays}</Text>
-                  <Icon
-                    name={
-                      expandedRow === item.id ? "chevron-up" : "chevron-down"
-                    }
-                    size={16}
-                    color="black"
-                    style={styles.expandIcon}
-                  />
-                </TouchableOpacity>
-
-                {expandedRow === item.id && (
-                  <View style={styles.routeStopsContainer}>
-                    <Text style={styles.stopsHeader}>Via:</Text>
-                    {stops.map((stop) => (
-                      <Text key={stop.stopId} style={styles.routeStopText}>
-                        {locations.find((loc) => loc.id === stop.stopId).name} -{" "}
-                        {stop.stopTime}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          }}
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color="#007AFF"
+          style={{ marginTop: 20 }}
         />
-      </View>
+      ) : (
+        <View style={styles.tableContainer}>
+          {filteredSchedules && filteredSchedules.length === 0 && (
+            <Text style={styles.label}>No buses found</Text>
+          )}
+          {filteredSchedules.length > 0 && (
+            <View style={styles.tableHeader}>
+              <View style={{ width: "60%", flexDirection: "row" }}>
+                {/*<Text style={styles.tableHeaderText}>Bus</Text> */}
+                <Text style={styles.tableHeaderText}>Source</Text>
+                <Text style={styles.tableHeaderText}>Destination</Text>
+              </View>
+              <Text style={styles.tableHeaderText}>Time</Text>
+              <Text style={styles.tableHeaderText}>Days</Text>
+              {/*<Text></Text>*/}
+            </View>
+          )}
+
+          <FlatList
+            data={filteredSchedules}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => {
+              const stops = routeStops.filter(
+                (stop) => stop.routeId === item.routeId
+              );
+              return (
+                <View>
+                  <TouchableOpacity
+                    onPress={() => toggleExpand(item.id)}
+                    style={styles.tableRow}
+                  >
+                    <View style={{ width: "60%", flexDirection: "row" }}>
+                      {/*<Text style={styles.tableRowText}>{item.busNumber}</Text> */}
+                      <Text style={styles.tableRowText}>
+                        {item.route.source.name}
+                      </Text>
+                      <Text style={styles.tableRowText}>
+                        {item.route.destination.name}
+                      </Text>
+                    </View>
+                    <Text style={styles.tableRowText}>
+                      {item.departureTime} - {item.arrivalTime}
+                    </Text>
+                    <Text>{item.weekDays}</Text>
+                    <Icon
+                      name={
+                        expandedRow === item.id ? "chevron-up" : "chevron-down"
+                      }
+                      size={16}
+                      color="black"
+                      style={styles.expandIcon}
+                    />
+                  </TouchableOpacity>
+
+                  {expandedRow === item.id && (
+                    <View style={styles.routeStopsContainer}>
+                      <Text style={styles.stopsHeader}>Via:</Text>
+                      {stops.map((stop) => (
+                        <Text key={stop.stopId} style={styles.routeStopText}>
+                          {locations.find((loc) => loc.id === stop.stopId).name}{" "}
+                          - {stop.stopTime}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              );
+            }}
+          />
+        </View>
+      )}
     </View>
   );
 };
+
 export default AppAScreen;
 
 const styles = StyleSheet.create({
