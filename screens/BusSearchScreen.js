@@ -11,7 +11,7 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import Icon from "react-native-vector-icons/FontAwesome";
 
-// API Base URL
+// API Base URL.
 const BASE_URL = "http://192.168.31.136:8080";
 
 const BusSearchScreen = () => {
