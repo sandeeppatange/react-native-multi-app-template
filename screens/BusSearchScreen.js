@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,57 +7,42 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import Icon from "react-native-vector-icons/FontAwesome";
 
-// API Base URL.
 const BASE_URL = "http://192.168.31.136:8080";
 
 const BusSearchScreen = () => {
-  const [locations, setLocations] = useState([]);
   const [source, setSource] = useState(null);
   const [destination, setDestination] = useState(null);
+  const [sourceInput, setSourceInput] = useState("");
+  const [destinationInput, setDestinationInput] = useState("");
   const [filteredSchedules, setFilteredSchedules] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [routeStops, setRouteStops] = useState({}); // Store fetched stops for each route
+  const [routeStops, setRouteStops] = useState({});
+  const [sourceSuggestions, setSourceSuggestions] = useState([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState([]);
 
-  useEffect(() => {
-    fetchRoutes();
-  }, []);
+  const fetchLocations = async (query, setSuggestions) => {
+    if (!query || query.length < 2) {
+      setSuggestions([]);
+      return;
+    }
 
-  // Fetch locations from the API
-  const fetchRoutes = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/routes`);
+      const response = await fetch(
+        `${BASE_URL}/locations/searchByNameLike?placeName=${query}`
+      );
       const data = await response.json();
-      console.log(data);
-      if (data.length > 0) {
-        const uniqueLocations = extractUniqueLocations(data);
-        console.log("uniqueLocations: ", uniqueLocations);
-        setLocations(uniqueLocations);
-        setSource(uniqueLocations[0].id);
-        setDestination(uniqueLocations[1]?.id || uniqueLocations[0].id);
-      }
+      setSuggestions(data);
     } catch (error) {
       console.error("Error fetching locations:", error);
-      Alert.alert("Error", "Failed to load locations.");
+      setSuggestions([]);
     }
   };
 
-  // Extract unique locations from routes
-  const extractUniqueLocations = (routes) => {
-    const locationsMap = new Map();
-    routes.forEach((route) => {
-      locationsMap.set(route.source.id, route.source);
-      locationsMap.set(route.destination.id, route.destination);
-    });
-    console.log("locationsMap: ", locationsMap);
-    return Array.from(locationsMap.values());
-  };
-
-  // Search buses based on source and destination
   const searchBus = async () => {
     if (!source || !destination) {
       Alert.alert("Error", "Please select a valid source and destination.");
@@ -67,7 +52,7 @@ const BusSearchScreen = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${BASE_URL}/schedules/search?sourceId=${source}&destinationId=${destination}`
+        `${BASE_URL}/schedules/search?sourceId=${source.id}&destinationId=${destination.id}`
       );
       const data = await response.json();
       setFilteredSchedules(data);
@@ -79,7 +64,6 @@ const BusSearchScreen = () => {
     setLoading(false);
   };
 
-  // Fetch route stops for a given route
   const fetchRouteStops = async (routeId) => {
     try {
       const response = await fetch(`${BASE_URL}/route-stops/${routeId}`);
@@ -97,7 +81,7 @@ const BusSearchScreen = () => {
     } else {
       setExpandedRow(routeId);
       if (!routeStops[routeId]) {
-        fetchRouteStops(routeId); // Fetch stops only if not already loaded
+        fetchRouteStops(routeId);
       }
     }
   };
@@ -105,26 +89,64 @@ const BusSearchScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Select Source</Text>
-      <Picker
-        selectedValue={source}
-        onValueChange={(itemValue) => setSource(itemValue)}
-        style={styles.picker}
-      >
-        {locations.map((loc) => (
-          <Picker.Item key={loc.id} label={loc.placeName} value={loc.id} />
-        ))}
-      </Picker>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter source place name"
+        value={sourceInput}
+        onChangeText={(text) => {
+          setSourceInput(text);
+          fetchLocations(text, setSourceSuggestions);
+        }}
+      />
+      {sourceSuggestions.length > 0 && (
+        <FlatList
+          data={sourceSuggestions}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.suggestionItem}
+              onPress={() => {
+                setSource(item);
+                setSourceInput(
+                  `${item.placeName}, ${item.taluka}, ${item.state}`
+                );
+                setSourceSuggestions([]);
+              }}
+            >
+              <Text>{`${item.placeName}, ${item.taluka}, ${item.state}`}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
 
       <Text style={styles.label}>Select Destination</Text>
-      <Picker
-        selectedValue={destination}
-        onValueChange={(itemValue) => setDestination(itemValue)}
-        style={styles.picker}
-      >
-        {locations.map((loc) => (
-          <Picker.Item key={loc.id} label={loc.placeName} value={loc.id} />
-        ))}
-      </Picker>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter destination place name"
+        value={destinationInput}
+        onChangeText={(text) => {
+          setDestinationInput(text);
+          fetchLocations(text, setDestinationSuggestions);
+        }}
+      />
+      {destinationSuggestions.length > 0 && (
+        <FlatList
+          data={destinationSuggestions}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.suggestionItem}
+              onPress={() => {
+                setDestination(item);
+                setDestinationInput(item.placeName); // Show selected place in input field
+                setDestinationSuggestions([]);
+              }}
+            >
+              <Text>{`${item.placeName}, ${item.taluka}, ${item.state}`}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
 
       <TouchableOpacity onPress={searchBus} style={styles.searchButton}>
         <Text style={styles.buttonText}>Search</Text>
@@ -212,20 +234,28 @@ export default BusSearchScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12 },
-  buttonText: {
-    fontWeight: "bold",
-    fontSize: 18,
-    color: "white",
-    marginVertical: 5,
+  label: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
+  input: {
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginBottom: 10,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
   },
   searchButton: {
     backgroundColor: "#007AFF",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 10,
   },
-  picker: { backgroundColor: "white", marginBottom: 10 },
+  buttonText: { fontWeight: "bold", fontSize: 18, color: "white" },
   tableContainer: {
     marginTop: 20,
     backgroundColor: "white",
@@ -237,7 +267,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
     padding: 10,
   },
-  tableHeaderText: { flex: 1, color: "white", fontWeight: "bold", padding: 1 },
+  tableHeaderText: { flex: 1, color: "white", fontWeight: "bold" },
   tableRow: {
     flexDirection: "row",
     padding: 5,
@@ -248,11 +278,5 @@ const styles = StyleSheet.create({
   routeStopsContainer: { padding: 10, backgroundColor: "#e0e0e0" },
   routeStopText: { fontSize: 14, marginVertical: 2 },
   expandIcon: { marginLeft: 1 },
-  label: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 5,
-  },
   stopsHeader: { fontStyle: "italic", fontWeight: "bold" },
 });
