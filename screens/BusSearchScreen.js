@@ -32,9 +32,10 @@ const BusSearchScreen = () => {
     try {
       const response = await fetch(`${BASE_URL}/routes`);
       const data = await response.json();
-
+      console.log(data);
       if (data.length > 0) {
         const uniqueLocations = extractUniqueLocations(data);
+        console.log("uniqueLocations: ", uniqueLocations);
         setLocations(uniqueLocations);
         setSource(uniqueLocations[0].id);
         setDestination(uniqueLocations[1]?.id || uniqueLocations[0].id);
@@ -52,6 +53,7 @@ const BusSearchScreen = () => {
       locationsMap.set(route.source.id, route.source);
       locationsMap.set(route.destination.id, route.destination);
     });
+    console.log("locationsMap: ", locationsMap);
     return Array.from(locationsMap.values());
   };
 
@@ -109,7 +111,7 @@ const BusSearchScreen = () => {
         style={styles.picker}
       >
         {locations.map((loc) => (
-          <Picker.Item key={loc.id} label={loc.name} value={loc.id} />
+          <Picker.Item key={loc.id} label={loc.placeName} value={loc.id} />
         ))}
       </Picker>
 
@@ -120,7 +122,7 @@ const BusSearchScreen = () => {
         style={styles.picker}
       >
         {locations.map((loc) => (
-          <Picker.Item key={loc.id} label={loc.name} value={loc.id} />
+          <Picker.Item key={loc.id} label={loc.placeName} value={loc.id} />
         ))}
       </Picker>
 
@@ -164,10 +166,10 @@ const BusSearchScreen = () => {
                   >
                     <View style={{ width: "60%", flexDirection: "row" }}>
                       <Text style={styles.tableRowText}>
-                        {item.route.source.name}
+                        {item.route.source.placeName}
                       </Text>
                       <Text style={styles.tableRowText}>
-                        {item.route.destination.name}
+                        {item.route.destination.placeName}
                       </Text>
                     </View>
                     <Text style={styles.tableRowText}>
@@ -191,7 +193,7 @@ const BusSearchScreen = () => {
                       <Text style={styles.stopsHeader}>Via:</Text>
                       {stops.map((stop) => (
                         <Text key={stop.id} style={styles.routeStopText}>
-                          {stop.stop.name} - {stop.stopTime}
+                          {stop.stop.placeName} - {stop.stopTime}
                         </Text>
                       ))}
                     </View>
