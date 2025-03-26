@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  Keyboard,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 
@@ -24,10 +25,13 @@ const BusSearchScreen = () => {
   const [routeStops, setRouteStops] = useState({});
   const [sourceSuggestions, setSourceSuggestions] = useState([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState([]);
+  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
 
-  const fetchLocations = async (query, setSuggestions) => {
-    if (!query || query.length < 2) {
+  const fetchLocations = async (query, setSuggestions, setShowDropdown) => {
+    if (!query || query.length < 3) {
       setSuggestions([]);
+      setShowDropdown(false);
       return;
     }
 
@@ -36,11 +40,25 @@ const BusSearchScreen = () => {
         `${BASE_URL}/locations/searchByNameLike?placeName=${query}`
       );
       const data = await response.json();
+      console.log("Fetched locations count for query ", query, data.length);
       setSuggestions(data);
+      setShowDropdown(true);
     } catch (error) {
       console.error("Error fetching locations:", error);
       setSuggestions([]);
+      setShowDropdown(false);
     }
+  };
+
+  const handleSelection = (item, setSelection, setInput, setShowDropdown) => {
+    Keyboard.dismiss(); // Close keyboard after selection
+    console.log("Closed keyboard");
+    setShowDropdown(false);
+
+    setSelection(item);
+    console.log("Selected item:", item.placeName);
+
+    setInput(item.placeName);
   };
 
   const searchBus = async () => {
@@ -89,64 +107,83 @@ const BusSearchScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Select Source</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter source place name"
-        value={sourceInput}
-        onChangeText={(text) => {
-          setSourceInput(text);
-          fetchLocations(text, setSourceSuggestions);
-        }}
-      />
-      {sourceSuggestions.length > 0 && (
-        <FlatList
-          data={sourceSuggestions}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.suggestionItem}
-              onPress={() => {
-                setSource(item);
-                setSourceInput(
-                  `${item.placeName}, ${item.taluka}, ${item.state}`
-                );
-                setSourceSuggestions([]);
-              }}
-            >
-              <Text>{`${item.placeName}, ${item.taluka}, ${item.state}`}</Text>
-            </TouchableOpacity>
-          )}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter source place name"
+          value={sourceInput}
+          onChangeText={(text) => {
+            setSourceInput(text);
+            fetchLocations(text, setSourceSuggestions, setShowSourceDropdown);
+          }}
         />
-      )}
+        {showSourceDropdown && sourceSuggestions.length > 0 && (
+          <View style={styles.dropdown}>
+            <FlatList
+              keyboardShouldPersistTaps="handled"
+              data={sourceSuggestions}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.suggestionItem}
+                  onPress={() => {
+                    console.log("✅ TouchableOpacity Pressed:", item.placeName);
+                    handleSelection(
+                      item,
+                      setSource,
+                      setSourceInput,
+                      setShowSourceDropdown
+                    );
+                  }}
+                >
+                  <Text>{`${item.placeName}, ${item.taluka}, ${item.state}`}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        )}
+      </View>
 
       <Text style={styles.label}>Select Destination</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter destination place name"
-        value={destinationInput}
-        onChangeText={(text) => {
-          setDestinationInput(text);
-          fetchLocations(text, setDestinationSuggestions);
-        }}
-      />
-      {destinationSuggestions.length > 0 && (
-        <FlatList
-          data={destinationSuggestions}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.suggestionItem}
-              onPress={() => {
-                setDestination(item);
-                setDestinationInput(item.placeName); // Show selected place in input field
-                setDestinationSuggestions([]);
-              }}
-            >
-              <Text>{`${item.placeName}, ${item.taluka}, ${item.state}`}</Text>
-            </TouchableOpacity>
-          )}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter destination place name"
+          value={destinationInput}
+          onChangeText={(text) => {
+            setDestinationInput(text);
+            fetchLocations(
+              text,
+              setDestinationSuggestions,
+              setShowDestinationDropdown
+            );
+          }}
         />
-      )}
+        {showDestinationDropdown && destinationSuggestions.length > 0 && (
+          <View style={styles.dropdown}>
+            <FlatList
+              keyboardShouldPersistTaps="handled"
+              data={destinationSuggestions}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.suggestionItem}
+                  onPress={() =>
+                    handleSelection(
+                      item,
+                      setDestination,
+                      setDestinationInput,
+                      setShowDestinationDropdown
+                    )
+                  }
+                >
+                  <Text>{`${item.placeName}, ${item.taluka}, ${item.state}`}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        )}
+      </View>
 
       <TouchableOpacity onPress={searchBus} style={styles.searchButton}>
         <Text style={styles.buttonText}>Search</Text>
@@ -235,6 +272,7 @@ export default BusSearchScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12 },
   label: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
+  inputContainer: { position: "relative" },
   input: {
     backgroundColor: "white",
     padding: 10,
@@ -242,6 +280,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     marginBottom: 10,
+  },
+  dropdown: {
+    position: "absolute",
+    top: 45,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    zIndex: 1000,
   },
   suggestionItem: {
     padding: 10,
