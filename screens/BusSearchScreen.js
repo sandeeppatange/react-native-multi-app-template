@@ -11,6 +11,7 @@ import {
   Keyboard,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
+import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
 
 const BASE_URL = "http://192.168.31.136:8080";
 
@@ -28,13 +29,15 @@ const BusSearchScreen = () => {
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
 
-  const fetchLocations = async (query, setSuggestions, setShowDropdown) => {
-    if (!query || query.length < 3) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      return;
-    }
+  // Debounced API calls for Source & Destination
+  useDebouncedSearch(source, (query) =>
+    fetchLocations(query, setSourceSuggestions, setShowSourceDropdown)
+  );
+  useDebouncedSearch(destination, (query) =>
+    fetchLocations(query, setDestinationSuggestions, setShowDestinationDropdown)
+  );
 
+  const fetchLocations = async (query, setSuggestions, setShowDropdown) => {
     try {
       const response = await fetch(
         `${BASE_URL}/locations/searchByNameLike?placeName=${query}`
@@ -50,22 +53,27 @@ const BusSearchScreen = () => {
     }
   };
 
-  const handleSelection = (item, setSelection, setInput, setShowDropdown) => {
-    Keyboard.dismiss(); // Close keyboard after selection
-    console.log("Closed keyboard");
-    setShowDropdown(false);
-
+  const handleSelection = (
+    item,
+    setSelection,
+    setInput,
+    setSuggestions,
+    setShowDropdown
+  ) => {
     setSelection(item);
-    console.log("Selected item:", item.placeName);
-
     setInput(item.placeName);
+    setSuggestions([]);
+    setShowDropdown(false);
+    Keyboard.dismiss();
   };
 
   const searchBus = async () => {
-    if (!source || !destination) {
+    if (!source || !destination || source.id === destination.id) {
       Alert.alert("Error", "Please select a valid source and destination.");
       return;
     }
+
+    console.log("Bus Search:", source.placeName, destination.placeName);
 
     setLoading(true);
     try {
@@ -110,11 +118,11 @@ const BusSearchScreen = () => {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Enter source place name"
+          placeholder="Enter Source"
           value={sourceInput}
           onChangeText={(text) => {
-            setSourceInput(text);
-            fetchLocations(text, setSourceSuggestions, setShowSourceDropdown);
+            setSourceInput(text); // Update the input value
+            setSource(text); // Trigger the debounced search
           }}
         />
         {showSourceDropdown && sourceSuggestions.length > 0 && (
@@ -132,6 +140,7 @@ const BusSearchScreen = () => {
                       item,
                       setSource,
                       setSourceInput,
+                      setSourceSuggestions,
                       setShowSourceDropdown
                     );
                   }}
@@ -148,15 +157,12 @@ const BusSearchScreen = () => {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Enter destination place name"
+          placeholder="Enter Destination"
           value={destinationInput}
           onChangeText={(text) => {
+            console.log("✅ onChangeText:", text);
             setDestinationInput(text);
-            fetchLocations(
-              text,
-              setDestinationSuggestions,
-              setShowDestinationDropdown
-            );
+            setDestination(text);
           }}
         />
         {showDestinationDropdown && destinationSuggestions.length > 0 && (
@@ -173,6 +179,7 @@ const BusSearchScreen = () => {
                       item,
                       setDestination,
                       setDestinationInput,
+                      setDestinationSuggestions,
                       setShowDestinationDropdown
                     )
                   }
